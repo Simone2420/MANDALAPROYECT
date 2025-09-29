@@ -38,6 +38,15 @@ class ComandaViewSet(viewsets.ModelViewSet):
     queryset = Comanda.objects.all().order_by('-fecha_hora')
     serializer_class = ComandaSerializer
 
+    def perform_create(self, serializer):
+        comanda = serializer.save()
+        for item in ComandaProducto.objects.filter(comanda=comanda):
+            producto = item.producto
+            if producto.stock < item.cantidad:
+                raise ValueError(f"❌ Stock insuficiente para el producto {producto.nombre}.")
+            producto.stock -= item.cantidad
+            producto.save()
+
 class MesaViewSet(viewsets.ModelViewSet):
     queryset = Mesa.objects.all().order_by('numero')
     serializer_class = MesaSerializer
