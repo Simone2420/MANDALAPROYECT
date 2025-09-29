@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+
 
 class Producto(models.Model):
     nombre = models.CharField(max_length=100)
@@ -14,24 +17,37 @@ class Producto(models.Model):
     def __str__(self):
         return self.nombre
 
+class Usuario(models.Model):
+    usuario = models.OneToOneField(User, on_delete=models.CASCADE)
+    rol = models.CharField(max_length=50, blank=True, null=True, choices=[("admin", "Admin"), ("mesera", "Mesera"), ("bartender", "Bartender")])  # admin, camarero, cocinero, bartender
 
+class Mesa(models.Model):
+    numero = models.CharField(max_length=10)
+    capacidad = models.IntegerField(default=1)
+    estado = models.CharField(max_length=20, default="disponible", choices=[("disponible", "Disponible"), ("ocupada", "Ocupada")])  # disponible, ocupada
 
+class Comanda(models.Model):
+    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE)
+    productos = models.ManyToManyField(Producto, through='ComandaProducto')
+    fecha_hora = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=20, default="activa", choices=[("activa", "Activa"), ("cerrada", "Cerrada"), ("confirmada", "Confirmada")])  # activa, cerrada, en espera
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
-class Pedido(models.Model):
-    fecha = models.DateTimeField(auto_now_add=True)
-    productos = models.ManyToManyField(Producto, through='PedidoProducto')
-
-    def total(self):
-        return sum(item.cantidad * item.producto.precio for item in self.pedidoproducto_set.all())
-
-    def __str__(self):
-        return f"Pedido #{self.id} - {self.fecha}"
-
-
-class PedidoProducto(models.Model):
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+class ComandaProducto(models.Model):
+    comanda = models.ForeignKey(Comanda, on_delete=models.CASCADE)
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
+
+# Ejemplo de cuerpo de formulario POST para alimentar este modelo:
+# {
+#   "mesa": 1,
+#   "productos": [
+#     {"producto": 2, "cantidad": 3},
+#     {"producto": 5, "cantidad": 1}
+#   ],
+#   "estado": "activa"
+# }
+
 
 class Movimiento(models.Model):
     TIPOS_MOVIMIENTO = [

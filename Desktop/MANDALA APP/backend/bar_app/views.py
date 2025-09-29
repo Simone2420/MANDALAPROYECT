@@ -1,10 +1,12 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import Producto, Pedido
+from .models import *
 from .serializers import ProductoSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import MovimientoSerializer
+from .serializers import ComandaSerializer
+from .serializers import MesaSerializer
 from .models import Movimiento
 from rest_framework import status
 
@@ -32,7 +34,18 @@ def perform_create(self, serializer):
             "producto": ProductoSerializer(producto).data
         }, status=status.HTTP_201_CREATED)
 
+class ComandaViewSet(viewsets.ModelViewSet):
+    queryset = Comanda.objects.all().order_by('-fecha_hora')
+    serializer_class = ComandaSerializer
 
+class MesaViewSet(viewsets.ModelViewSet):
+    queryset = Mesa.objects.all().order_by('numero')
+    serializer_class = MesaSerializer
+    def perform_create(self, serializer):
+        if Mesa.objects.filter(numero=serializer.validated_data['numero']).exists():
+            raise ValueError("❌ Ya existe una mesa con ese número.")
+        serializer.save()
+    
 @api_view(['GET'])
 def productos_list(request):
     productos = Producto.objects.all()
